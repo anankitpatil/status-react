@@ -39,11 +39,6 @@
                (assoc-in [:wallet :send-transaction :amount] amount)
                (assoc-in [:wallet :send-transaction :amount-error] error))})))
 
-(def ^:private clear-send-properties {:id  nil
-                                      :wrong-password? false
-                                      :waiting-signal? false
-                                      :from-chat? false})
-
 (handlers/register-handler-fx
   ::transaction-completed
   (fn [{db :db} [_ {:keys [id response]}]]
@@ -52,7 +47,7 @@
       (if-not (and error (string? error) (not (string/blank? error)))
         {:db       (-> db'
                        (update-in [:wallet :transactions-unsigned] dissoc id)
-                       (update-in [:wallet :send-transaction] merge clear-send-properties))
+                       (update :wallet dissoc :send-transaction))
          :dispatch [:navigate-to :wallet-transaction-sent]}
         {:db db'}))))
 
@@ -71,7 +66,7 @@
         {:db db'}
         {:db       (-> db'
                        (update-in [:wallet :transactions-unsigned] dissoc id)
-                       (update-in [:wallet :send-transaction] merge clear-send-properties))
+                       (update :wallet dissoc :send-transaction))
          :dispatch-n [[:navigate-back]
                       [:navigate-to :wallet-transaction-sent]]}))))
 
@@ -124,7 +119,7 @@
 (defn discard-transaction
   [{:keys [db]}]
   (let [{:keys [id]} (get-in db [:wallet :send-transaction])]
-    (merge {:db (update-in db [:wallet :send-transaction] merge clear-send-properties)}
+    (merge {:db (update db :wallet dissoc :send-transaction)}
            (when id
              {:discard-transaction id}))))
 
